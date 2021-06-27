@@ -1,0 +1,2 @@
+rootProject.name = "GetUP"
+include ':app'
