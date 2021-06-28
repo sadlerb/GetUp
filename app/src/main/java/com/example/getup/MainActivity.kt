@@ -5,30 +5,46 @@
     import android.content.Context
     import android.os.Build
     import android.os.Bundle
-    import android.os.Handler
-    import android.os.Looper
     import android.view.View
+    import android.widget.Button
     import android.widget.TextView
     import androidx.appcompat.app.AppCompatActivity
     import androidx.core.app.NotificationCompat
     import androidx.core.app.NotificationManagerCompat
     import com.google.android.material.floatingactionbutton.FloatingActionButton
     import java.util.*
+    import kotlin.concurrent.schedule
 
     class MainActivity : AppCompatActivity(),CustomDialogFragment.OnInputListener{
         private val dialogFragment = CustomDialogFragment()
         private val CHANNEL_ID = "channel_id_example"
         private val notificationId = 0
+        private lateinit var repeat: TextView
+        private lateinit var desc: TextView
+        private lateinit var notifaction_builder: NotificationCompat.Builder
+        private lateinit var timer: TimerTask
+        private lateinit var stop: Button
 
         override fun onCreate(savedInstanceState: Bundle?) {
             super.onCreate(savedInstanceState)
             setContentView(R.layout.activity_main)
+            repeat = findViewById(R.id.repeat)
+            desc = findViewById(R.id.description)
+            stop = findViewById(R.id.stop_timer)
             val createViewButton: FloatingActionButton = findViewById(R.id.createReminder)
             createViewButton.setOnClickListener {
                 if (dialogFragment.isAdded){
                     return@setOnClickListener
                 }
                 dialogFragment.show(supportFragmentManager,"Custom_Dialog")
+            }
+            stop.setOnClickListener {
+                stopTimer()
+                desc.text = ""
+                repeat.text = ""
+                desc.visibility = View.INVISIBLE
+                repeat.visibility = View.INVISIBLE
+
             }
         }
 
@@ -37,8 +53,6 @@
         }
 
         private fun setText(input: Array<String>) {
-            val repeat: TextView =  findViewById(R.id.repeat)
-            val desc: TextView = findViewById(R.id.description)
             desc.text = input[0]
             repeat.text = input[1]
             startTimer(repeat.text.toString())
@@ -47,23 +61,33 @@
         }
 
         private fun startTimer(input: String) {
+            createNotificationChannel()
+            createNotification()
             var time = input.toLong()
             time *= 60000
-            Handler(Looper.getMainLooper()).postDelayed({
+
+            timer = Timer().schedule(time,time){
                 sendNotification()
-            },time)
+            }
+        }
+
+        private fun stopTimer(){
+            timer.cancel()
+
         }
 
         private fun sendNotification() {
-            createNotificationChannel()
-            val builder = NotificationCompat.Builder(this,CHANNEL_ID)
+            with(NotificationManagerCompat.from(this)){
+                notify(notificationId,notifaction_builder.build())
+            }
+        }
+
+        private fun createNotification(){
+            notifaction_builder = NotificationCompat.Builder(this,CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
                 .setContentText("My Notification")
-                .setContentText("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent nec facilisis nulla, eu consequat neque. Duis ultricies iaculis pharetra. Maecenas ornare ac lectus consectetur varius")
+                .setContentText(desc.text)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            with(NotificationManagerCompat.from(this)){
-                notify(notificationId,builder.build())
-            }
         }
 
         private fun createNotificationChannel() {
